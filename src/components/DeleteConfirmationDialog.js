@@ -1,14 +1,20 @@
 import React from 'react';
 
-const DeleteConfirmationDialog = ({ open, onClose, onConfirm }) => {
+const DeleteConfirmationDialog = ({ 
+  open, 
+  onClose, 
+  onConfirm, 
+  title = "Delete Item", // Default title
+  message = "Are you sure you want to delete this item? This action cannot be undone." // Default message
+}) => {
   if (!open) return null;
 
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
-        <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#dc2626' }}>Delete Room Type</h3>
+        <h3 style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#dc2626' }}>{title}</h3>
         <p style={{ color: '#4b5563', marginBottom: '20px' }}>
-          Are you sure you want to delete this room type? This action cannot be undone.
+          {message}
         </p>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
           <button onClick={onClose} style={cancelBtnStyle}>Cancel</button>
