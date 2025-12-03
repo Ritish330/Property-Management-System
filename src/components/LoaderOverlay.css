@@ -34,7 +34,7 @@
   height: 22px;
   border-radius: 50%;
   border: 3px solid #f2f4f7;
-  border-top-color: #ff9100; /* close to sandbox orange */
+  border-top-color: #2563eb; /* blue-600 */
   animation: loader-spin 0.7s linear infinite;
 }
 

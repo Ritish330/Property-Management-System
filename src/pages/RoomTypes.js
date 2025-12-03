@@ -6,11 +6,16 @@ import {
 } from '../api/client';
 import MessageDialog from '../components/MessageDialog';
 import LoaderOverlay from '../components/LoaderOverlay';
+import StatusChangeDialog from '../components/StatusChangeDialog';
+import DeleteConfirmationDialog from '../components/DeleteConfirmationDialog';
 import './RoomTypes.css';
+
+import { COUNTRY_LIST } from '../components/CountryList';
+import { ROOM_TYPE_OPTIONS } from '../components/RoomTypeOptions';
 
 /* ------------------ 3-dot Action Menu ------------------ */
 
-const ActionMenu = ({ onView, onEdit }) => {
+const ActionMenu = ({ onView, onEdit, onActivate, onDeactivate, onDelete, status }) => {
   const [open, setOpen] = useState(false);
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const btnRef = useRef(null);
@@ -21,15 +26,9 @@ const ActionMenu = ({ onView, onEdit }) => {
   const toggle = (e) => {
     e.stopPropagation();
     if (!btnRef.current) return;
-    if (open) {
-      setOpen(false);
-      return;
-    }
+    if (open) { setOpen(false); return; }
     const rect = btnRef.current.getBoundingClientRect();
-    setMenuPos({
-      top: rect.bottom + 6,
-      left: Math.max(rect.right - 200, 8), 
-    });
+    setMenuPos({ top: rect.bottom + 6, left: Math.max(rect.right - 200, 8) });
     setOpen(true);
   };
 
@@ -51,12 +50,12 @@ const ActionMenu = ({ onView, onEdit }) => {
       </button>
       {open && (
         <div ref={menuRef} className="rt-action-dropdown" style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, zIndex: 9999 }}>
-          <button type="button" className="rt-action-item" onClick={(e) => { e.stopPropagation(); close(); onView && onView(); }}>
-            View Room Type
-          </button>
-          <button type="button" className="rt-action-item" onClick={(e) => { e.stopPropagation(); close(); onEdit && onEdit(); }}>
-            Edit Room Type
-          </button>
+          <button type="button" className="rt-action-item" onClick={(e) => { e.stopPropagation(); close(); onView && onView(); }}>View Room Type</button>
+          <button type="button" className="rt-action-item" onClick={(e) => { e.stopPropagation(); close(); onEdit && onEdit(); }}>Edit Room Type</button>
+          <hr style={{margin:'4px 0', border:'0', borderTop:'1px solid #eee'}}/>
+          {status !== 'Active' && <button type="button" className="rt-action-item" onClick={(e) => { e.stopPropagation(); close(); onActivate && onActivate(); }}>Activate</button>}
+          {status === 'Active' && <button type="button" className="rt-action-item" onClick={(e) => { e.stopPropagation(); close(); onDeactivate && onDeactivate(); }}>Deactivate</button>}
+          <button type="button" className="rt-action-item rt-action-danger" onClick={(e) => { e.stopPropagation(); close(); onDelete && onDelete(); }}>Delete</button>
         </div>
       )}
     </div>
@@ -78,15 +77,18 @@ const EMPTY_FORM = {
   roomType: 'Apartment', 
   sizeMeasurement: '',
   sizeMeasurementUnit: 'sqm',
-  amenities: [], // Stores UI structure
+  addressLine: '',
+  cityName: '',
+  postalCode: '',
+  countryName: '',
+  latitude: '',
+  longitude: '',
+  amenities: [], 
 };
 
-const ROOM_TYPE_OPTIONS = [
-  "Apartment", "Bungalow", "Chalet", "Double", "Family", "King", "Queen", "Single", "Suite", "Studio", "Twin", "Triple", "Quadruple", "Villa"
-];
-
 const SECTIONS = [
-  { id: 'listing', label: 'Listing Types' },
+  { id: 'listing', label: 'Listing Details' },
+  { id: 'location', label: 'Location' },
   { id: 'amenities', label: 'Amenities' },
   { id: 'images', label: 'Images' },
   { id: 'fees', label: 'Fees' },
@@ -104,8 +106,7 @@ const RoomTypeFormModal = ({ open, mode, hotelId, hotels, initialData, onClose, 
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMsg, setDialogMsg] = useState('');
-
-  // Amenities local state
+  
   const [newGroup, setNewGroup] = useState('');
   const [newItemText, setNewItemText] = useState({});
 
@@ -115,35 +116,24 @@ const RoomTypeFormModal = ({ open, mode, hotelId, hotels, initialData, onClose, 
     if (!open) return;
     setErrors({});
     setActiveSection('listing');
-    setNewGroup('');
-    setNewItemText({});
     
     if (initialData) {
-      // API Amenities -> UI Structure
       const apiFacilities = initialData.facilities || [];
       const grouped = {};
+      ['Amenities', 'Fees', 'Bedding'].forEach(g => grouped[g] = []);
       apiFacilities.forEach(f => {
         if (!grouped[f.Group]) grouped[f.Group] = [];
-        grouped[f.Group].push({ name: f.name, checked: true });
+        if (!grouped[f.Group].find(i => i.name === f.name)) {
+            grouped[f.Group].push({ name: f.name, checked: true });
+        }
       });
-      const amenitiesUI = Object.keys(grouped).map(g => ({
-        group: g,
-        items: grouped[g]
-      }));
-
-      setForm({ 
-        ...EMPTY_FORM, 
-        hotelId: hotelId || initialData.hotelId, 
-        ...initialData,
-        amenities: amenitiesUI 
-      });
+      const amenitiesUI = Object.keys(grouped).map(g => ({ group: g, items: grouped[g] }));
+      setForm({ ...EMPTY_FORM, hotelId: hotelId || initialData.hotelId, ...initialData, amenities: amenitiesUI });
     } else {
-      // Default Amenities
       const defaultAmenities = [
+        { group: 'Amenities', items: [{ name: 'Free Wifi', checked: false }, { name: 'AC', checked: false }] },
         { group: 'Bedding', items: [{ name: 'King Size Bed', checked: false }] },
-        { group: 'Bathroom', items: [{ name: 'Hot & Cold Shower', checked: false }] },
-        { group: 'Entertainment', items: [{ name: '32-inch LED TV', checked: false }] },
-        { group: 'Food & Beverage', items: [{ name: 'Complimentary Breakfast', checked: false }] }
+        { group: 'Fees', items: [] },
       ];
       setForm({ ...EMPTY_FORM, hotelId: hotelId || '', amenities: defaultAmenities });
     }
@@ -152,6 +142,7 @@ const RoomTypeFormModal = ({ open, mode, hotelId, hotels, initialData, onClose, 
   if (!open) return null;
 
   const title = isView ? 'View Room Type' : isEdit ? 'Edit Room Type' : 'Add Room Type';
+  const primaryLabel = isCreate ? 'Submit' : 'Save';
 
   const onChange = (e) => {
     const { name, value } = e.target;
@@ -159,7 +150,6 @@ const RoomTypeFormModal = ({ open, mode, hotelId, hotels, initialData, onClose, 
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: null }));
   };
 
-  // Amenities Handlers
   const toggleAmenity = (groupIndex, itemIndex) => {
     if (isView) return;
     const newAmenities = [...form.amenities];
@@ -177,16 +167,16 @@ const RoomTypeFormModal = ({ open, mode, hotelId, hotels, initialData, onClose, 
     const text = newItemText[groupIndex];
     if (!text || !text.trim()) return;
     const newAmenities = [...form.amenities];
-    const items = text.split(',').map(s => s.trim()).filter(Boolean);
-    items.forEach(i => newAmenities[groupIndex].items.push({ name: i, checked: true }));
+    text.split(',').forEach(t => {
+        if(t.trim()) newAmenities[groupIndex].items.push({ name: t.trim(), checked: true });
+    });
     setForm(prev => ({ ...prev, amenities: newAmenities }));
     setNewItemText(prev => ({ ...prev, [groupIndex]: '' }));
   };
 
-  // Scrollspy logic
   const handleScroll = () => {
     if (!scrollContainerRef.current) return;
-    const containerTop = scrollContainerRef.current.scrollTop + 120; 
+    const containerTop = scrollContainerRef.current.scrollTop + 150; 
     for (const section of SECTIONS) {
       const element = document.getElementById(`section-${section.id}`);
       if (element) {
@@ -207,21 +197,20 @@ const RoomTypeFormModal = ({ open, mode, hotelId, hotels, initialData, onClose, 
     }
   };
 
-  // Validation
   const validate = () => {
     const newErrors = {};
-    if (!form.hotelId) newErrors.hotelId = "Hotel is required.";
-    if (!form.roomid) newErrors.roomid = "Room ID is required.";
-    else if (form.roomid.length > 20) newErrors.roomid = "Max 20 chars.";
-    else if (!/^[a-zA-Z0-9-]+$/.test(form.roomid)) newErrors.roomid = "Alphanumeric & hyphen only.";
-
-    if (!form.name) newErrors.name = "Room Name is required.";
-    if (!form.roomRate || Number(form.roomRate) <= 0) newErrors.roomRate = "Valid Rate required.";
-    if (!form.maxOccupancy || Number(form.maxOccupancy) > 999) newErrors.maxOccupancy = "Valid Max Adult required.";
+    if (!form.hotelId) newErrors.hotelId = "Hotel is required";
+    if (!form.roomid) newErrors.roomid = "Room ID is required";
+    else if (!/^[a-zA-Z0-9-]+$/.test(form.roomid)) newErrors.roomid = "Alphanumeric & hyphen only (no spaces)";
+    if (!form.name) newErrors.name = "Room Name is required";
+    if (!form.roomRate || Number(form.roomRate) <= 0) newErrors.roomRate = "Rate must be > 0";
+    if (!form.maxOccupancy) newErrors.maxOccupancy = "Max Occupancy is required";
     
-    if (form.maxChildOccupancy === '' || form.maxChildOccupancy === null) newErrors.maxChildOccupancy = "Required.";
-    else if (Number(form.maxChildOccupancy) >= Number(form.maxOccupancy)) newErrors.maxChildOccupancy = "Must be < Max Adult.";
-
+    if (form.maxChildOccupancy === '' || form.maxChildOccupancy === null) {
+        newErrors.maxChildOccupancy = "Max Child is required (enter 0 if none)";
+    } else if (Number(form.maxChildOccupancy) >= Number(form.maxOccupancy)) {
+        newErrors.maxChildOccupancy = "Must be less than Max Occupancy";
+    }
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) scrollToSection('listing');
     return Object.keys(newErrors).length === 0;
@@ -232,9 +221,6 @@ const RoomTypeFormModal = ({ open, mode, hotelId, hotels, initialData, onClose, 
     if (isView) { onClose(); return; }
     if (!validate()) return;
 
-    const isModify = isEdit;
-
-    // Transform UI Amenities -> API Structure
     const facilityList = [];
     form.amenities.forEach(group => {
         group.items.forEach(item => {
@@ -244,6 +230,7 @@ const RoomTypeFormModal = ({ open, mode, hotelId, hotels, initialData, onClose, 
         });
     });
 
+    const isModify = isEdit;
     const payload = {
       SellableProducts: {
         hotelid: form.hotelId,
@@ -270,6 +257,18 @@ const RoomTypeFormModal = ({ open, mode, hotelId, hotels, initialData, onClose, 
                 Text: form.name,
                 ...(form.roomDescription ? { RoomDescription: form.roomDescription } : {}),
               },
+              Address: {
+                 AddressLine: form.addressLine || '',
+                 CityName: form.cityName || '',
+                 PostalCode: form.postalCode || '',
+                 CountryName: form.countryName || '',
+              },
+              ...(form.latitude && form.longitude ? {
+                  Position: {
+                     Latitude: form.latitude,
+                     Longitude: form.longitude,
+                  }
+              } : {}),
               ...(facilityList.length > 0 ? {
                   Facilities: { Facility: facilityList }
               } : {})
@@ -282,13 +281,23 @@ const RoomTypeFormModal = ({ open, mode, hotelId, hotels, initialData, onClose, 
     try {
       setSaving(true);
       const res = await pushRoomTypes(payload);
-      if (!res || res.Status !== 'Success') {
-        const msg = res?.Errors?.[0]?.ShortText || res?.Status || 'Failed to push room type';
-        setDialogMsg(msg);
+      const isSuccess = res?.success === true || res?.data?.Status === 'Success';
+
+      if (!isSuccess) {
+        const errorMsg = 
+            res?.error?.Errors?.[0]?.ShortText || 
+            res?.data?.Errors?.[0]?.ShortText || 
+            res?.message ||
+            'Failed to create the room type';
+        setDialogMsg(errorMsg);
         setDialogOpen(true);
         return;
       }
-      onSaved && onSaved();
+      
+      const successMsg = isCreate 
+        ? 'Successfully created the room type' 
+        : 'Successfully updated the room type';
+      onSaved && onSaved(successMsg);
       onClose();
     } catch (err) {
       setDialogMsg(err.message || 'Error occurred.');
@@ -299,7 +308,6 @@ const RoomTypeFormModal = ({ open, mode, hotelId, hotels, initialData, onClose, 
   };
 
   const isDisabled = isView || saving;
-  const primaryLabel = isCreate ? 'Save' : 'Update';
 
   return (
     <>
@@ -309,45 +317,27 @@ const RoomTypeFormModal = ({ open, mode, hotelId, hotels, initialData, onClose, 
             <h2>{title}</h2>
             <button type="button" className="rt-modal-close" onClick={onClose} disabled={saving}>✕</button>
           </div>
-
-          {/* Sticky Navigation */}
           <div className="rt-sticky-nav">
             {SECTIONS.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                className={`rt-nav-link ${activeSection === s.id ? 'rt-nav-active' : ''}`}
-                onClick={() => scrollToSection(s.id)}
-              >
-                {s.label}
-              </button>
+              <button key={s.id} type="button" className={`rt-nav-link ${activeSection === s.id ? 'rt-nav-active' : ''}`} onClick={() => scrollToSection(s.id)}>{s.label}</button>
             ))}
           </div>
-
-          {/* Scrollable Content Form */}
-          <form 
-            className="rt-modal-content" 
-            onSubmit={handleSubmit} 
-            onScroll={handleScroll} 
-            ref={scrollContainerRef}
-          >
-            {/* Section 1: Listing Types */}
+          <form className="rt-modal-content" onSubmit={handleSubmit} onScroll={handleScroll} ref={scrollContainerRef}>
+            {/* Form sections are same as before, omitted for brevity, ensure all sections (Listing, Location, Amenities...) are here */}
+             {/* --- Listing Section --- */}
             <div id="section-listing" className="rt-scroll-section">
                <div className="rt-section-header">Listing Details</div>
-               
                <div className="rt-form-grid">
                   <div className="rt-form-field">
                     <label>Hotel ID<span className="rt-required">*</span></label>
                     <select name="hotelId" value={form.hotelId} onChange={onChange} disabled={isEdit || isDisabled} className={errors.hotelId ? 'rt-input-error' : ''}>
                       <option value="">Select Hotel</option>
-                      {Array.isArray(hotels) && hotels.map((h) => (
-                        <option key={h.propertyid} value={h.propertyid}>{h.propertyname} ({h.propertyid})</option>
-                      ))}
+                      {hotels.map(h => <option key={h.propertyid} value={h.propertyid}>{h.propertyname}</option>)}
                     </select>
                     {errors.hotelId && <span className="rt-error-text">{errors.hotelId}</span>}
                   </div>
                   <div className="rt-form-field">
-                    <label>PMS Room ID<span className="rt-required">*</span></label>
+                    <label>Room ID<span className="rt-required">*</span></label>
                     <input name="roomid" value={form.roomid} onChange={onChange} disabled={isEdit || isDisabled} className={errors.roomid ? 'rt-input-error' : ''} />
                     {errors.roomid && <span className="rt-error-text">{errors.roomid}</span>}
                   </div>
@@ -357,7 +347,7 @@ const RoomTypeFormModal = ({ open, mode, hotelId, hotels, initialData, onClose, 
                     {errors.name && <span className="rt-error-text">{errors.name}</span>}
                   </div>
                </div>
-
+               
                <div className="rt-form-grid">
                  <div className="rt-form-field">
                     <label>Type<span className="rt-required">*</span></label>
@@ -366,12 +356,12 @@ const RoomTypeFormModal = ({ open, mode, hotelId, hotels, initialData, onClose, 
                     </select>
                  </div>
                  <div className="rt-form-field">
-                    <label>Max. Adult<span className="rt-required">*</span></label>
+                    <label>Max Occupancy<span className="rt-required">*</span></label>
                     <input type="number" name="maxOccupancy" value={form.maxOccupancy} onChange={onChange} disabled={isDisabled} className={errors.maxOccupancy ? 'rt-input-error' : ''} />
                     {errors.maxOccupancy && <span className="rt-error-text">{errors.maxOccupancy}</span>}
                  </div>
                  <div className="rt-form-field">
-                    <label>Max. Child<span className="rt-required">*</span></label>
+                    <label>Max Child<span className="rt-required">*</span></label>
                     <input type="number" name="maxChildOccupancy" value={form.maxChildOccupancy} onChange={onChange} disabled={isDisabled} className={errors.maxChildOccupancy ? 'rt-input-error' : ''} />
                     {errors.maxChildOccupancy && <span className="rt-error-text">{errors.maxChildOccupancy}</span>}
                  </div>
@@ -391,96 +381,112 @@ const RoomTypeFormModal = ({ open, mode, hotelId, hotels, initialData, onClose, 
                    <label>Size</label>
                    <div style={{display:'flex', gap:'8px'}}>
                      <input name="sizeMeasurement" value={form.sizeMeasurement} onChange={onChange} disabled={isDisabled} placeholder="e.g. 16" style={{flex:1}} />
-                     <select name="sizeMeasurementUnit" value={form.sizeMeasurementUnit} onChange={onChange} disabled={isDisabled} style={{width:'90px'}}>
-                       <option value="sqm">sqm</option>
-                       <option value="sqft">sqft</option>
+                     <select name="sizeMeasurementUnit" value={form.sizeMeasurementUnit} onChange={onChange} disabled={isDisabled} style={{width:'80px'}}>
+                       <option value="sqm">sqm</option><option value="sqft">sqft</option>
                      </select>
                    </div>
                  </div>
                </div>
-
+               
                <div className="rt-form-field" style={{marginTop:'10px'}}>
                   <label>Description</label>
-                  <textarea name="roomDescription" value={form.roomDescription} onChange={onChange} rows={4} disabled={isDisabled} maxLength={2000} />
-                  <span className="rt-char-hint">{2000 - (form.roomDescription?.length || 0)} chars left</span>
+                  <textarea name="roomDescription" value={form.roomDescription} onChange={onChange} rows={3} disabled={isDisabled} maxLength={2000} />
                </div>
             </div>
 
-            {/* Section 2: Amenities */}
-            <div id="section-amenities" className="rt-scroll-section">
-               <div className="rt-section-header">Amenities</div>
-               
-               {!isView && (
-                 <div style={{ marginBottom:'16px', display:'flex', gap:'8px', alignItems:'flex-end' }}>
-                    <div className="rt-form-field" style={{flex:1}}>
-                        <label>Add New Amenity Category</label>
-                        <input 
-                            placeholder="e.g. Kitchen" 
-                            value={newGroup}
-                            onChange={(e) => setNewGroup(e.target.value)}
-                        />
-                    </div>
-                    <button type="button" className="rt-btn-secondary" onClick={handleAddGroup}>+ Add Group</button>
-                 </div>
-               )}
-
-               {form.amenities.map((group, gIndex) => (
-                 <div key={gIndex} className="rt-amenity-group">
-                    <div className="rt-amenity-group-header">
-                       <span className="rt-amenity-group-title">{group.group}</span>
-                    </div>
-                    <div className="rt-amenity-list">
-                       {group.items.map((item, iIndex) => (
-                          <label key={iIndex} className="rt-amenity-item">
-                             <input 
-                                type="checkbox" 
-                                checked={item.checked} 
-                                onChange={() => toggleAmenity(gIndex, iIndex)}
-                                disabled={isView}
-                             />
-                             {item.name}
-                          </label>
-                       ))}
-                    </div>
-                    {!isView && (
-                        <div className="rt-add-input-row">
-                            <input 
-                                className="rt-input-small" 
-                                placeholder={`Add ${group.group} item...`}
-                                value={newItemText[gIndex] || ''}
-                                onChange={(e) => setNewItemText({...newItemText, [gIndex]: e.target.value})}
-                                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddItem(gIndex))}
-                            />
-                            <button type="button" className="rt-btn-xs" onClick={() => handleAddItem(gIndex)}>+ Add</button>
-                        </div>
-                    )}
-                 </div>
-               ))}
+            {/* --- Location Section (ALL OPTIONAL) --- */}
+            <div id="section-location" className="rt-scroll-section">
+               <div className="rt-section-header">Location</div>
+               <div className="rt-form-grid">
+                  <div className="rt-form-field">
+                    <label>Address</label>
+                    <input name="addressLine" value={form.addressLine} onChange={onChange} disabled={isDisabled} />
+                  </div>
+                  <div className="rt-form-field">
+                    <label>City</label>
+                    <input name="cityName" value={form.cityName} onChange={onChange} disabled={isDisabled} />
+                  </div>
+               </div>
+               <div className="rt-form-grid">
+                  <div className="rt-form-field">
+                    <label>Postal Code</label>
+                    <input name="postalCode" value={form.postalCode} onChange={onChange} disabled={isDisabled} />
+                  </div>
+                  <div className="rt-form-field">
+                    <label>Country</label>
+                    <select name="countryName" value={form.countryName} onChange={onChange} disabled={isDisabled}>
+                        <option value="">Select Country</option>
+                        {COUNTRY_LIST.map(c => (
+                            <option key={c.code} value={c.code}>{c.name}</option>
+                        ))}
+                    </select>
+                  </div>
+               </div>
+               <div className="rt-form-grid">
+                  <div className="rt-form-field">
+                    <label>Latitude</label>
+                    <input name="latitude" value={form.latitude} onChange={onChange} disabled={isDisabled} placeholder="-90 to 90" />
+                  </div>
+                  <div className="rt-form-field">
+                    <label>Longitude</label>
+                    <input name="longitude" value={form.longitude} onChange={onChange} disabled={isDisabled} placeholder="-180 to 180" />
+                  </div>
+               </div>
             </div>
 
-            {/* Section 3: Images */}
+            {/* --- Amenities / Fees / Bedding --- */}
+            {['Amenities', 'Fees', 'Bedding'].map((sectionTitle) => {
+               const sectionId = sectionTitle.toLowerCase();
+               const groupIndex = form.amenities.findIndex(g => g.group === sectionTitle);
+               const group = groupIndex > -1 ? form.amenities[groupIndex] : { group: sectionTitle, items: [] };
+               
+               return (
+                 <div id={`section-${sectionId}`} key={sectionId} className="rt-scroll-section">
+                    <div className="rt-section-header">{sectionTitle}</div>
+                    <div className="rt-amenity-group">
+                       <div className="rt-amenity-group-header">
+                          <span className="rt-amenity-group-title">Manage {sectionTitle}</span>
+                       </div>
+                       <div className="rt-amenity-list">
+                          {group.items.length === 0 && <span style={{fontSize:'12px', color:'#999', padding:'8px'}}>No items yet</span>}
+                          {group.items.map((item, iIndex) => (
+                             <label key={iIndex} className="rt-amenity-item">
+                                <input 
+                                   type="checkbox" 
+                                   checked={item.checked} 
+                                   onChange={() => toggleAmenity(groupIndex, iIndex)}
+                                   disabled={isView}
+                                />
+                                {item.name}
+                             </label>
+                          ))}
+                       </div>
+                       {!isView && (
+                           <div className="rt-add-input-row">
+                               <input 
+                                   className="rt-input-small" 
+                                   placeholder={`Add ${sectionTitle}...`}
+                                   value={newItemText[groupIndex] || ''}
+                                   onChange={(e) => setNewItemText({...newItemText, [groupIndex]: e.target.value})}
+                                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddItem(groupIndex))}
+                               />
+                               <button type="button" className="rt-btn-xs" onClick={() => handleAddItem(groupIndex)}>+ Add</button>
+                           </div>
+                       )}
+                    </div>
+                 </div>
+               );
+            })}
+
+            {/* --- Images Section --- */}
             <div id="section-images" className="rt-scroll-section">
                <div className="rt-section-header">Images</div>
-               <div className="rt-section" style={{minHeight:'150px', display:'flex', alignItems:'center', justifyContent:'center', border:'2px dashed #e5e7eb'}}>
-                  <span style={{color:'#9ca3af'}}>+ Upload Images (Max 20MB)</span>
+               <div className="rt-section" style={{minHeight:'120px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', border:'2px dashed #e5e7eb'}}>
+                  <span style={{color:'#9ca3af', marginBottom:'8px'}}>+ Upload Images (Max 20MB)</span>
+                  <input type="file" multiple disabled={isDisabled} />
                </div>
             </div>
-
-            {/* Section 4: Fees */}
-            <div id="section-fees" className="rt-scroll-section">
-               <div className="rt-section-header">Fees</div>
-               <div className="rt-section"><p style={{padding:'10px', margin:0}}>Fees configuration goes here...</p></div>
-            </div>
-
-            {/* Section 5: Bedding */}
-            <div id="section-bedding" className="rt-scroll-section">
-               <div className="rt-section-header">Bedding</div>
-               <div className="rt-section"><p style={{padding:'10px', margin:0}}>Bedding configuration goes here...</p></div>
-            </div>
-
           </form>
-
-          {/* Footer - Fixed at bottom */}
           <div className="rt-modal-footer">
             <button type="button" className="rt-btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
             {!isView && <button type="button" className="rt-btn-primary" onClick={handleSubmit} disabled={saving}>{saving ? 'Saving…' : primaryLabel}</button>}
@@ -488,7 +494,7 @@ const RoomTypeFormModal = ({ open, mode, hotelId, hotels, initialData, onClose, 
         </div>
       </div>
       {saving && <LoaderOverlay open={saving} />}
-      <MessageDialog open={dialogOpen} title="Room Type Error" message={dialogMsg} onClose={() => setDialogOpen(false)} />
+      <MessageDialog open={dialogOpen} title="Error" message={dialogMsg} onClose={() => setDialogOpen(false)} />
     </>
   );
 };
@@ -500,10 +506,20 @@ const RoomTypesPage = () => {
   const [hotels, setHotels] = useState([]);
   const [roomsRaw, setRoomsRaw] = useState(null);
   const [loading, setLoading] = useState(false);
+  
+  // Dialog states
   const [errorDialogOpen, setErrorDialogOpen] = useState(false);
   const [errorDialogMsg, setErrorDialogMsg] = useState('');
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [successDialogMsg, setSuccessDialogMsg] = useState('');
+
+  // Status/Delete Dialogs
+  const [statusDialog, setStatusDialog] = useState({ open: false, room: null, newStatus: '' });
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, room: null });
+
   const [filterInputs, setFilterInputs] = useState({ search: '', status: '' });
-  const [filters, setFilters] = useState({ search: '', status: '' });
+  // Removed "filters" state to enable live filtering
+  
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [modalInitialData, setModalInitialData] = useState(null);
@@ -522,7 +538,12 @@ const RoomTypesPage = () => {
         roomRate: room.rate,
         sizeMeasurement: room.sizemeasurement, 
         sizeMeasurementUnit: room.sizemeasurementunit,
-        // Map Facilities for Edit Form
+        addressLine: room.Address?.AddressLine,
+        cityName: room.Address?.CityName,
+        postalCode: room.Address?.PostalCode,
+        countryName: room.Address?.CountryName,
+        latitude: room.Position?.Latitude,
+        longitude: room.Position?.Longitude,
         facilities: room.Facilities?.Facility || []
       }));
       setRoomsRaw(mappedList);
@@ -550,6 +571,86 @@ const RoomTypesPage = () => {
     if (hotelId) loadRooms(); else setRoomsRaw([]);
   }, [hotelId, loadRooms]);
 
+  const handleModalSave = (successMsg) => {
+      loadRooms();
+      setSuccessDialogMsg(successMsg);
+      setSuccessDialogOpen(true);
+  };
+
+  const handleStatusChange = async (room, newStatus) => {
+    // Note: Confirmation happens in the Dialog component now, 
+    // but the API call happens here after confirmation from dialog.
+    // However, since we want the Dialog to handle the UI, 
+    // we just open the dialog here. The actual API logic will be passed to the dialog
+    // OR we execute it here after the dialog confirms.
+    // Wait... the previous design had the API call inside confirmStatusChange.
+    // Let's adapt that.
+  };
+
+  // Actual API Logic called by the Dialog
+  const confirmStatusChange = async () => {
+    const { room, newStatus } = statusDialog;
+    if (!room) return;
+    try {
+        setLoading(true);
+        const payload = {
+            SellableProducts: {
+                hotelid: hotelId,
+                SellableProduct: [{
+                    InvStatusType: newStatus,
+                    InvNotifType: 'Overlay', 
+                    roomid: room.roomid
+                }]
+            }
+        };
+        const res = await pushRoomTypes(payload);
+        const isSuccess = res?.success === true || res?.data?.Status === 'Success';
+        if (!isSuccess) throw new Error(res?.error?.Errors?.[0]?.ShortText || 'Action failed');
+
+        setStatusDialog({ open: false, room: null, newStatus: '' });
+        await loadRooms();
+        setSuccessDialogMsg(`Successfully ${newStatus === 'Active' ? 'activated' : 'deactivated'} the room type`);
+        setSuccessDialogOpen(true);
+    } catch (err) {
+        setErrorDialogMsg(err.message);
+        setErrorDialogOpen(true);
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    const { room } = deleteDialog;
+    if (!room) return;
+    try {
+        setLoading(true);
+        const payload = {
+            SellableProducts: {
+                hotelid: hotelId,
+                SellableProduct: [{
+                    InvStatusType: 'Delete',
+                    InvNotifType: 'Overlay', 
+                    roomid: room.roomid
+                }]
+            }
+        };
+        const res = await pushRoomTypes(payload);
+        const isSuccess = res?.success === true || res?.data?.Status === 'Success';
+        if (!isSuccess) throw new Error(res?.error?.Errors?.[0]?.ShortText || 'Delete failed');
+
+        setDeleteDialog({ open: false, room: null });
+        await loadRooms();
+        setSuccessDialogMsg('Successfully deleted the room type');
+        setSuccessDialogOpen(true);
+    } catch (err) {
+        setErrorDialogMsg(err.message);
+        setErrorDialogOpen(true);
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  // ... Mappers ...
   const mapRowToForm = (row) => ({
     hotelId,
     roomid: row.roomid,
@@ -563,21 +664,32 @@ const RoomTypesPage = () => {
     sizeMeasurement: row.sizeMeasurement,
     sizeMeasurementUnit: row.sizeMeasurementUnit || 'sqm',
     invStatusType: row.status || 'Initial',
-    facilities: row.facilities // Pass mapped facilities to modal
+    addressLine: row.addressLine,
+    cityName: row.cityName,
+    postalCode: row.postalCode,
+    countryName: row.countryName,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    facilities: row.facilities
   });
 
   const openCreateModal = () => { setModalMode('create'); setModalInitialData(null); setModalOpen(true); };
   const openViewModal = (row) => { setModalMode('view'); setModalInitialData(mapRowToForm(row)); setModalOpen(true); };
   const openEditModal = (row) => { setModalMode('edit'); setModalInitialData(mapRowToForm(row)); setModalOpen(true); };
 
+  const openStatusDialog = (room, status) => setStatusDialog({ open: true, room, newStatus: status });
+  const openDeleteDialog = (room) => setDeleteDialog({ open: true, room });
+
   const handleFilterChange = (field) => (e) => setFilterInputs(prev => ({ ...prev, [field]: e.target.value }));
-  const handleApplyFilters = () => setFilters(filterInputs);
-  const handleResetFilters = () => { setFilterInputs({ search: '', status: '' }); setFilters({ search: '', status: '' }); };
+  const handleResetFilters = () => { setFilterInputs({ search: '', status: '' }); };
   const handleHotelChange = (e) => setHotelId(e.target.value);
 
+  // ⭐ LIVE FILTERING: Uses filterInputs directly
   const filteredRooms = roomsRaw?.filter(r => {
-    if (filters.search && !r.name?.toLowerCase().includes(filters.search.toLowerCase()) && !r.roomid?.toLowerCase().includes(filters.search.toLowerCase())) return false;
-    if (filters.status && r.status !== filters.status) return false;
+    if (filterInputs.search && 
+        !r.name?.toLowerCase().includes(filterInputs.search.toLowerCase()) && 
+        !r.roomid?.toLowerCase().includes(filterInputs.search.toLowerCase())) return false;
+    if (filterInputs.status && r.status !== filterInputs.status) return false;
     return true;
   });
 
@@ -612,7 +724,8 @@ const RoomTypesPage = () => {
             </select>
           </div>
           <div className="rt-filter-actions">
-            <button className="rt-icon-btn" onClick={handleApplyFilters}>🔍</button>
+            {/* Search button removed or made pure UI since filtering is live */}
+            <button className="rt-icon-btn">🔍</button> 
             <button className="rt-icon-btn" onClick={handleResetFilters}>⟳</button>
           </div>
         </div>
@@ -632,8 +745,21 @@ const RoomTypesPage = () => {
                    <td>{room.name || '-'}</td>
                    <td>{room.maxOccupancy || '-'}</td>
                    <td>{room.roomRate || '-'}</td>
-                   <td className="rt-status-cell">{room.status || 'Initial'}</td>
-                   <td className="rt-col-action-cell"><ActionMenu onView={() => openViewModal(room)} onEdit={() => openEditModal(room)} /></td>
+                   <td className="rt-status-cell">
+                      <span style={{ color: room.status === 'Active' ? '#16a34a' : '#0b5ed7' }}>
+                        {room.status || 'Initial'}
+                      </span>
+                   </td>
+                   <td className="rt-col-action-cell">
+                      <ActionMenu 
+                        status={room.status}
+                        onView={() => openViewModal(room)} 
+                        onEdit={() => openEditModal(room)} 
+                        onActivate={() => openStatusDialog(room, 'Active')}
+                        onDeactivate={() => openStatusDialog(room, 'Deactivated')}
+                        onDelete={() => openDeleteDialog(room)}
+                      />
+                   </td>
                  </tr>
               ))}
             </tbody>
@@ -648,10 +774,24 @@ const RoomTypesPage = () => {
         hotels={hotels} 
         initialData={modalInitialData} 
         onClose={() => setModalOpen(false)} 
-        onSaved={loadRooms} 
+        onSaved={handleModalSave} 
       />
       
       <MessageDialog open={errorDialogOpen} title="Error" message={errorDialogMsg} onClose={() => setErrorDialogOpen(false)} />
+      <MessageDialog open={successDialogOpen} title="Success" message={successDialogMsg} onClose={() => setSuccessDialogOpen(false)} />
+
+      <StatusChangeDialog 
+        open={statusDialog.open} 
+        status={statusDialog.newStatus} 
+        onClose={() => setStatusDialog({ open: false, room: null, newStatus: '' })} 
+        onConfirm={confirmStatusChange} 
+      />
+
+      <DeleteConfirmationDialog 
+        open={deleteDialog.open} 
+        onClose={() => setDeleteDialog({ open: false, room: null })} 
+        onConfirm={confirmDelete} 
+      />
     </div>
   );
 };

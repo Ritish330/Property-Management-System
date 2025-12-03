@@ -24,7 +24,7 @@
 
 .prop-add-btn {
   padding: 8px 18px;
-  background: #ff8100;
+  background: #0b5ed7;
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -33,7 +33,7 @@
 }
 
 .prop-add-btn:hover {
-  background: #ff921f;
+  background: #2563eb;
 }
 
 /* Filter card */
@@ -231,8 +231,8 @@
 }
 
 .prop-modal-tab-active {
-  color: #ff8100;
-  border-bottom: 2px solid #ff8100;
+  color: #0b5ed7;
+  border-bottom: 2px solid #0b5ed7;
 }
 
 .prop-modal-body {
@@ -254,7 +254,7 @@
 }
 
 .prop-section-icon {
-  color: #ff8100;
+  color: #0b5ed7;
   font-size: 16px;
 }
 
@@ -286,7 +286,7 @@
 }
 
 .prop-required {
-  color: #f97316;
+  color: #e11d48;
   margin-left: 2px;
 }
 
@@ -437,14 +437,14 @@
   padding: 7px 18px;
   border-radius: 4px;
   border: none;
-  background: #ff8100;
+  background: #0b5ed7;
   color: #ffffff;
   font-size: 13px;
   cursor: pointer;
 }
 
 .prop-btn-primary:hover {
-  background: #ff921f;
+  background: #2563eb;
 }
 
 .prop-icon-btn {
@@ -467,7 +467,7 @@
 
 .prop-action-trigger {
  border: none;
-  background: #ff8a00;
+  background: #0b5ed7;
   border-radius: 999px;
   width: 28px;
   height: 28px;

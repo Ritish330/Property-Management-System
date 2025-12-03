@@ -61,7 +61,7 @@ const MessageDialog = ({ open, title, message, onClose }) => {
               padding: '6px 16px',
               borderRadius: 4,
               border: '1px solid #d0d7de',
-              background: '#ff8a00',
+              background: '#0b5ed7',
               fontSize: 13,
               cursor: 'pointer',
             }}

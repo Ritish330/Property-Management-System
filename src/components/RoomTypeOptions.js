@@ -1,0 +1,22 @@
+export const ROOM_TYPE_OPTIONS = [
+  "Apartment",
+  "Bed in Dormitory",
+  "Bungalow",
+  "Chalet",
+  "Double",
+  "Dormitory room",
+  "Family",
+  "Holiday home",
+  "King",
+  "Mobile home",
+  "Powered/Unpowered Site",
+  "Quadruple",
+  "Queen",
+  "Single",
+  "Studio",
+  "Suite",
+  "Tent",
+  "Triple",
+  "Twin",
+  "Villa"
+];
