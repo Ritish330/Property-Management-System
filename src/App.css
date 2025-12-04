@@ -1,69 +1,69 @@
-/* .App {
-  text-align: center;
-}
+  /* .App {
+    text-align: center;
+  }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
   .App-logo {
-    animation: App-logo-spin infinite 20s linear;
+    height: 40vmin;
+    pointer-events: none;
   }
-}
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+  @media (prefers-reduced-motion: no-preference) {
+    .App-logo {
+      animation: App-logo-spin infinite 20s linear;
+    }
   }
-  to {
-    transform: rotate(360deg);
+
+  .App-header {
+    background-color: #282c34;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(10px + 2vmin);
+    color: white;
   }
-} */
 
-/* src/App.css */
-.app-root {
-  display: flex;
-  min-height: 100vh;
-  background: #f5f7fb;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
+  .App-link {
+    color: #61dafb;
+  }
 
-.app-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: #f5f7fb;
-}
+  @keyframes App-logo-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  } */
 
-.app-content {
-  padding: 24px;
-  flex: 1;
-  overflow-y: auto;
-}
+  /* src/App.css */
+  .app-root {
+    display: flex;
+    min-height: 100vh;
+    background: #f5f7fb;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
 
-.card {
-  background: #ffffff;
-  padding: 16px 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(15, 35, 52, 0.06);
-}
-.card h3 {
-  margin: 0 0 8px;
-}
+  .app-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #f5f7fb;
+  }
+
+  .app-content {
+    padding: 24px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .card {
+    background: #ffffff;
+    padding: 16px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(15, 35, 52, 0.06);
+  }
+  .card h3 {
+    margin: 0 0 8px;
+  }
