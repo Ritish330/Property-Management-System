@@ -64,6 +64,7 @@
                 background: '#0b5ed7',
                 fontSize: 13,
                 cursor: 'pointer',
+                color: '#ffffff',
               }}
             >
               OK
