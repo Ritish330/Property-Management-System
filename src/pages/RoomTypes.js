@@ -872,7 +872,7 @@
           <div className="rt-table-wrapper">
             <table className="rt-table">
               <thead>
-                <tr><th>Room ID</th><th>Room Name</th><th>Max Occ</th><th>Base Rate</th><th>Status</th><th className="rt-col-action">Action</th></tr>
+                <tr><th>Room ID</th><th>Room Name</th><th>Room Quantity</th><th>Max Occ</th><th>Base Rate</th><th>Status</th><th className="rt-col-action">Action</th></tr>
               </thead>
               <tbody>
                 {loading && <tr><td colSpan={6} className="rt-table-empty">Loading...</td></tr>}
@@ -882,6 +882,7 @@
                   <tr key={room.roomid}>
                     <td className="rt-cell-id"><span className="rt-row-strip" /><span>{room.roomid}</span></td>
                     <td>{room.name || '-'}</td>
+                    <td>{room.quantity || 'Auto'}</td>
                     <td>{room.maxOccupancy || '-'}</td>
                     <td>{room.roomRate || '-'}</td>
                     <td className="rt-status-cell">

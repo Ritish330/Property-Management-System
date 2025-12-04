@@ -213,7 +213,7 @@
                     {errors.hotelId && <span className="rp-error-text">{errors.hotelId}</span>}
                   </div>
                   <div className="rp-form-field">
-                    <label>PMS Rate ID<span className="rp-required">*</span></label>
+                    <label>Rate ID<span className="rp-required">*</span></label>
                     <input name="rateplanid" value={form.rateplanid} onChange={onChange} disabled={isEdit || isDisabled} className={errors.rateplanid ? 'rp-input-error' : ''} />
                     {errors.rateplanid && <span className="rp-error-text">{errors.rateplanid}</span>}
                   </div>
@@ -502,7 +502,7 @@
           <div className="rp-table-wrapper">
             <table className="rp-table">
               <thead>
-                <tr><th>ID</th><th>Rate Plan</th><th>Meal Plan</th><th>Status</th><th className="rp-col-action">Action</th></tr>
+                <tr><th>RATE ID</th><th>Rate Plan Name</th><th>Meal Plan</th><th>Status</th><th className="rp-col-action">Action</th></tr>
               </thead>
               <tbody>
                 {loading && <tr><td colSpan={5} className="rp-table-empty">Loading...</td></tr>}
