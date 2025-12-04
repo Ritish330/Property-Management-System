@@ -11,7 +11,7 @@
   import './RatePlans.css';
 
   // Data imports
-  import { MEAL_PLAN_OPTIONS } from '../components/MealPlanOptions';
+  import { MEAL_PLAN_OPTIONS } from '../constantdata/MealPlanOptions';
 
   /* ------------------ 3-dot Action Menu ------------------ */
 
@@ -524,7 +524,7 @@
                           onView={() => openViewModal(rate)} 
                           onEdit={() => openEditModal(rate)} 
                           onActivate={() => openStatusDialog(rate, 'Active')}
-  onDeactivate={() => openStatusDialog(rate, 'Deactivated')}
+                          onDeactivate={() => openStatusDialog(rate, 'Deactivated')}
                           onDelete={() => setDeleteDialog({ open: true, item: rate })}
                         />
                     </td>
@@ -554,7 +554,7 @@
           onClose={() => setStatusDialog({ open: false, item: null, newStatus: '' })} 
           onConfirm={confirmStatusChange} 
           title={statusDialog.title}       // <--- Pass Title
-  message={statusDialog.message}
+          message={statusDialog.message}
         />
 
         <DeleteConfirmationDialog 
