@@ -57,9 +57,9 @@
     // --- Inventory & Restrictions ---
     const [inventory, setInventory] = useState({
       roomstosell: '',        // Required
-      minimumstay: '',        // Required
-      maximumstay: '',        // Required
-      maximumstaythrough: '', // Required
+      minimumstay: '',        // Optional (Validation Removed)
+      maximumstay: '',        // Optional (Validation Removed)
+      maximumstaythrough: '', // Optional (Validation Removed)
       minimumstaythrough: '', // Optional
       closed: false,          // Required (Boolean)
       closedonarrival: false,   // Optional
@@ -68,12 +68,11 @@
 
     // --- Extra Rates ---
     const [extraRates, setExtraRates] = useState({
-      extraadultrate: '', // Optional
-      extrachildrate: ''  // Optional
+      extraadultrate: '', 
+      extrachildrate: ''  
     });
 
     // --- Dynamic Arrays ---
-    // Default 1 empty row for Rate Plans and Prices to force input
     const [ratePlans, setRatePlans] = useState([{ rateplanid: '' }]); 
     const [prices, setPrices] = useState([{ guests: '1', amount: '' }]); 
     const [losPrices, setLosPrices] = useState([]); 
@@ -201,16 +200,12 @@
           if (!dateData.single) { newErrors.dateSingle = "Date required"; isValid = false; }
       }
 
-      // 3. Inventory & Restrictions
+      // Inventory Validation - Only 'roomstosell' is strictly required now
       if (inventory.roomstosell === '') { newErrors.roomstosell = "Required"; isValid = false; }
-      if (inventory.minimumstay === '') { newErrors.minimumstay = "Required"; isValid = false; }
-      if (inventory.maximumstay === '') { newErrors.maximumstay = "Required"; isValid = false; }
-      if (inventory.maximumstaythrough === '') { newErrors.maximumstaythrough = "Required"; isValid = false; }
+      
+      // NOTE: Validation for minimumstay, maximumstay, maximumstaythrough has been REMOVED per request.
 
-      // 4. Rate Plans
-      if (ratePlans.length === 0) {
-          isValid = false; // Logic ensures UI has at least 1 row, but safety check
-      }
+      if (ratePlans.length === 0) isValid = false; 
       ratePlans.forEach((rp, idx) => {
           if (!rp.rateplanid) {
               newErrors[`rate_${idx}`] = "Rate Plan is required";
@@ -218,10 +213,7 @@
           }
       });
 
-      // 5. Prices
-      if (prices.length === 0) {
-          isValid = false; 
-      }
+      if (prices.length === 0) isValid = false;
       prices.forEach((p, idx) => {
           if (!p.guests) { newErrors[`price_${idx}_guests`] = "Req"; isValid = false; }
           if (!p.amount) { newErrors[`price_${idx}_amount`] = "Amount Required"; isValid = false; }
@@ -239,11 +231,16 @@
 
       const dateObj = {
         ...(dateMode === 'single' ? { value: dateData.single } : { from: dateData.from, to: dateData.to }),
+        
+        // Required
         roomstosell: inventory.roomstosell,
-        minimumstay: inventory.minimumstay,
-        maximumstay: inventory.maximumstay,
-        maximumstaythrough: inventory.maximumstaythrough,
+        
+        // Now Optional - Only send if value exists
+        ...(inventory.minimumstay ? { minimumstay: inventory.minimumstay } : {}),
+        ...(inventory.maximumstay ? { maximumstay: inventory.maximumstay } : {}),
+        ...(inventory.maximumstaythrough ? { maximumstaythrough: inventory.maximumstaythrough } : {}),
         ...(inventory.minimumstaythrough ? { minimumstaythrough: inventory.minimumstaythrough } : {}),
+        
         closed: inventory.closed ? "1" : "0",
         closedonarrival: inventory.closedonarrival ? "1" : "0",
         closedondeparture: inventory.closedondeparture ? "1" : "0",
@@ -260,13 +257,29 @@
       };
     }, [hotelId, roomId, dateData, dateMode, inventory, extraRates, prices, losPrices, ratePlans]);
 
+    // --- RESET FUNCTION ---
+    const resetForm = () => {
+      setRoomId('');
+      setCurrentRoomMaxQty(null);
+      setDateMode('range');
+      setDateData({
+        single: new Date().toISOString().split('T')[0],
+        from: new Date().toISOString().split('T')[0],
+        to: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+      });
+      setInventory({
+        roomstosell: '', minimumstay: '', maximumstay: '', maximumstaythrough: '', minimumstaythrough: '',
+        closed: false, closedonarrival: false, closedondeparture: false,
+      });
+      setExtraRates({ extraadultrate: '', extrachildrate: '' });
+      setRatePlans([{ rateplanid: '' }]);
+      setPrices([{ guests: '', amount: '' }]);
+      setLosPrices([]);
+      setErrors({});
+    };
+
     const handleSubmit = async () => {
-      if (!validateForm()) {
-          // Validation failed, errors state is updated, UI shows red text
-          return;
-      }
-      
-      // Extra safety for custom logic
+      if (!validateForm()) return;
       if (errors.roomstosell) return;
 
       try {
@@ -281,7 +294,6 @@
             message: 'Successfully added to availability', 
             type: 'success' 
           });
-          resetForm();
         } else {
           throw new Error(res?.error?.Errors?.[0]?.ShortText || 'Unknown error');
         }
@@ -292,27 +304,12 @@
       }
     };
 
-    // --- RESET FUNCTION ---
-  const resetForm = () => {
-    // Note: We deliberately do NOT reset hotelId so the user can easily continue working on the same property.
-    setRoomId('');
-    setCurrentRoomMaxQty(null);
-    setDateMode('range');
-    setDateData({
-      single: new Date().toISOString().split('T')[0],
-      from: new Date().toISOString().split('T')[0],
-      to: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-    });
-    setInventory({
-      roomstosell: '', minimumstay: '', maximumstay: '', maximumstaythrough: '', minimumstaythrough: '',
-      closed: false, closedonarrival: false, closedondeparture: false,
-    });
-    setExtraRates({ extraadultrate: '', extrachildrate: '' });
-    setRatePlans([{ rateplanid: '' }]);
-    setPrices([{ guests: '', amount: '' }]);
-    setLosPrices([]);
-    setErrors({});
-  };
+    const handleDialogClose = () => {
+      if (dialog.type === 'success') {
+        resetForm();
+      }
+      setDialog({ ...dialog, open: false });
+    };
 
     return (
       <div className="av-page">
@@ -400,22 +397,19 @@
 
             <div className="av-grid-2">
               <div className="av-field">
-                <label>Min Stay <span className="av-req">*</span></label>
-                <input type="number" min="0" value={inventory.minimumstay} onChange={e => handleInventoryChange('minimumstay', e.target.value)} className={errors.minimumstay ? 'av-input-error' : ''} placeholder="Days" />
-                {errors.minimumstay && <span className="av-error-text">{errors.minimumstay}</span>}
+                <label>Min Stay</label>
+                <input type="number" min="0" value={inventory.minimumstay} onChange={e => handleInventoryChange('minimumstay', e.target.value)} placeholder="Days" />
               </div>
               <div className="av-field">
-                <label>Max Stay <span className="av-req">*</span></label>
-                <input type="number" min="0" value={inventory.maximumstay} onChange={e => handleInventoryChange('maximumstay', e.target.value)} className={errors.maximumstay ? 'av-input-error' : ''} placeholder="Days" />
-                {errors.maximumstay && <span className="av-error-text">{errors.maximumstay}</span>}
+                <label>Max Stay</label>
+                <input type="number" min="0" value={inventory.maximumstay} onChange={e => handleInventoryChange('maximumstay', e.target.value)} placeholder="Days" />
               </div>
             </div>
 
             <div className="av-grid-2">
               <div className="av-field">
-                <label>Max Stay Through <span className="av-req">*</span></label>
-                <input type="number" min="0" value={inventory.maximumstaythrough} onChange={e => handleInventoryChange('maximumstaythrough', e.target.value)} className={errors.maximumstaythrough ? 'av-input-error' : ''} placeholder="Days" />
-                {errors.maximumstaythrough && <span className="av-error-text">{errors.maximumstaythrough}</span>}
+                <label>Max Stay Through</label>
+                <input type="number" min="0" value={inventory.maximumstaythrough} onChange={e => handleInventoryChange('maximumstaythrough', e.target.value)} placeholder="Days" />
               </div>
               <div className="av-field">
                 <label>Min Stay Through</label>
@@ -553,7 +547,8 @@
           </div>
 
         </div>
-        <MessageDialog open={dialog.open} title={dialog.title} message={dialog.message} onClose={() => setDialog({ ...dialog, open: false })} />
+        
+        <MessageDialog open={dialog.open} title={dialog.title} message={dialog.message} onClose={handleDialogClose} />
       </div>
     );
   };
