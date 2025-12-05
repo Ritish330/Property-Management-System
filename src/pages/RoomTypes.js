@@ -864,8 +864,8 @@
               </select>
             </div>
             <div className="rt-filter-actions">
-              <button className="rt-icon-btn" onClick={handleApplyFilters}>🔍</button>
-              <button className="rt-icon-btn" onClick={handleResetFilters}>⟳</button>
+              {/* <button className="rt-icon-btn" title="Search" onClick={handleApplyFilters}>🔍</button> */}
+              <button className="rt-icon-btn" title="Reset & Reload" onClick={() => {handleResetFilters(); loadRooms(); }}>⟳</button>
             </div>
           </div>
 

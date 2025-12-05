@@ -444,24 +444,24 @@
     });
 
     // Add this function
-  const openStatusDialog = (rate, status) => {
-    const isActivate = status === 'Active';
-    const actionWord = isActivate ? 'Activate' : 'Deactivate';
-    
-    // Custom Title
-    const title = `${actionWord} Rate Plan`;
-    
-    // Custom Message
-    const message = `Are you sure you want to ${actionWord.toLowerCase()} the rate plan "${rate.name}"?`;
+    const openStatusDialog = (rate, status) => {
+      const isActivate = status === 'Active';
+      const actionWord = isActivate ? 'Activate' : 'Deactivate';
+      
+      // Custom Title
+      const title = `${actionWord} Rate Plan`;
+      
+      // Custom Message
+      const message = `Are you sure you want to ${actionWord.toLowerCase()} the rate plan "${rate.name}"?`;
 
-    setStatusDialog({ 
-      open: true, 
-      item: rate, 
-      newStatus: status,
-      title,
-      message
-    });
-  };
+      setStatusDialog({ 
+        open: true, 
+        item: rate, 
+        newStatus: status,
+        title,
+        message
+      });
+    };
 
     return (
       <div className="rp-page">
@@ -494,8 +494,16 @@
               </select>
             </div>
             <div className="rp-filter-actions">
-              <button className="rp-icon-btn">🔍</button>
-              <button className="rp-icon-btn" onClick={() => { setFilterText(''); setFilterStatus(''); }}>⟳</button>
+              {/* Added title for hover effect */}
+              {/* <button className="rp-icon-btn" title="Search">🔍</button> */}
+              {/* Modified Reset button to clear filters AND call loadRates() */}
+              <button 
+                className="rp-icon-btn" 
+                title="Reset & Reload" 
+                onClick={() => { setFilterText(''); setFilterStatus(''); loadRates(); }}
+              >
+                ⟳
+              </button>
             </div>
           </div>
 
